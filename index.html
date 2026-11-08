@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Notes & Private MX Vault</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&family=Inter:wght@400;500;600;700&display=swap');
+    
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #161f33;
+      --bg-header: #070a12;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.15);
+      --border-color: #1e293b;
+    }
+
+    /* Themes */
+    body.theme-amoled {
+      --bg-main: #000000;
+      --bg-card: #111111;
+      --bg-header: #000000;
+      --text-main: #ffffff;
+      --text-muted: #888888;
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.2);
+      --border-color: #222222;
+    }
+
+    body.theme-light {
+      --bg-main: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-header: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.12);
+      --border-color: #e2e8f0;
+    }
+
+    body.theme-emerald {
+      --bg-main: #051814;
+      --bg-card: #0c2922;
+      --bg-header: #03110e;
+      --text-main: #ecfdf5;
+      --text-muted: #6ee7b7;
+      --accent: #10b981;
+      --accent-soft: rgba(16, 185, 129, 0.18);
+      --border-color: #134e4a;
+    }
+
+    body.theme-purple {
+      --bg-main: #13091f;
+      --bg-card: #211235;
+      --bg-header: #0c0514;
+      --text-main: #f5f3ff;
+      --text-muted: #c4b5fd;
+      --accent: #8b5cf6;
+      --accent-soft: rgba(139, 92, 246, 0.2);
+      --border-color: #3b1d5e;
+    }
+
+    * {
+      font-family: 'Inter', 'Padauk', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      box-sizing: border-box;
+    }
+
+    input, textarea { user-select: text; }
+
+    html, body {
+      height: 100dvh;
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      transition: background-color 0.25s, color 0.25s;
+    }
+
+    .theme-bg-main { background-color: var(--bg-main); }
+    .theme-bg-card { background-color: var(--bg-card); }
+    .theme-bg-header { background-color: var(--bg-header); }
+    .theme-text-main { color: var(--text-main); }
+    .theme-text-muted { color: var(--text-muted); }
+    .theme-border { border-color: var(--border-color); }
+    .theme-accent-bg { background-color: var(--accent); }
+    .theme-accent-text { color: var(--accent); }
+    .theme-accent-soft { background-color: var(--accent-soft); }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Custom MX Slider */
+    input[type=range].mx-slider {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type=range].mx-slider::-webkit-slider-runnable-track {
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.25);
+    }
+    input[type=range].mx-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: #3b82f6;
+      border: 2px solid #ffffff;
+      margin-top: -5.5px;
+    }
+
+    #gestureSurface { touch-action: none; }
+    .hud-hidden { opacity: 0 !important; pointer-events: none !important; }
+    .video-fit-contain { object-fit: contain; }
+    .video-fit-cover { object-fit: cover; }
+    .video-fit-fill { object-fit: fill; }
+
+    /* Automatic Landscape Responsive Adjustment when Phone Rotates */
+    @media screen and (orientation: landscape) {
+      #mxPlayerOverlay {
+        width: 100vw !important;
+        height: 100dvh !important;
+      }
+      #mxTopHud { padding: 8px 18px !important; }
+      #mxBottomHud { padding: 8px 18px 10px 18px !important; }
+    }
+  </style>
+</head>
+<body class="flex flex-col h-[100dvh] w-full max-w-md mx-auto theme-bg-main relative overflow-hidden shadow-2xl">
+
+  <!-- ================= 0. APP PIN LOCK OVERLAY ================= -->
+  <div id="appLockOverlay" class="fixed inset-0 z-[100] theme-bg-main hidden flex-col items-center justify-between py-12 px-6 select-none">
+    <div class="text-center mt-6">
+      <div class="w-16 h-16 rounded-2xl theme-accent-soft theme-accent-text flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <h2 id="lockScreenTitle" class="text-lg font-bold theme-text-main">App Lock ဖွင့်ရန် PIN ရိုက်ထည့်ပါ</h2>
+      <p id="lockScreenSub" class="text-xs theme-text-muted mt-1">ဂဏန်း ၄ လုံး ရိုက်ထည့်ပါ</p>
+      
+      <!-- 4 Dots Indicator -->
+      <div class="flex items-center justify-center gap-4 mt-6" id="pinDotsContainer">
+        <div class="w-3.5 h-3.5 rounded-full border-2 border-blue-500 transition-all"></div>
+        <div class="w-3.5 h-3.5 rounded-full border-2 border-blue-500 transition-all"></div>
+        <div class="w-3.5 h-3.5 rounded-full border-2 border-blue-500 transition-all"></div>
+        <div class="w-3.5 h-3.5 rounded-full border-2 border-blue-500 transition-all"></div>
+      </div>
+      <p id="pinErrorMsg" class="text-xs text-rose-500 font-semibold mt-3 h-4"></p>
+    </div>
+
+    <!-- Keypad -->
+    <div class="grid grid-cols-3 gap-4 w-full max-w-[270px] mb-4">
+      <button onclick="pressPinDigit('1')" class="h-16 rounded-2xl theme-bg-card border theme-border text-xl font-bold active:scale-95 transition">1</button>
+      <button onclick="pressPinDigit('2')" class="h-16 rounded-2xl theme-bg-card border theme-border text-xl font-bold active:scale-95 transition">2</button>
+      <button onclick="pressPinDigit('3')" class="h-16 rounded-2xl theme-bg-card border theme-border text-xl font-bold active:scale-95 transition">3</button>
+      <button onclick="pressPinDigit('4')" class="h-16 rounded-2xl theme-bg-card border theme-border text-xl font-bold active:scale-95 transition">4</button>
+      <button onclick="pressPinDigit('5')" class="h-16 rounded-2xl theme-bg-card border theme-border text-xl font-bold active:scale-95 transition">5</button>
+      <button onclick="pressPinDigit('6')" class="h-16 rounded-2xl theme-bg-card border theme-border text-xl font-bold active:scale-95 transition">6</button>
+      <button onclick="pressPinDigit('7')" class="h-16 rounded-2xl theme-bg-card border theme-border text-xl font-bold active:scale-95 transition">7</button>
+      <button onclick="pressPinDigit('8')" class="h-16 rounded-2xl theme-bg-card border theme-border text-xl font-bold active:scale-95 transition">8</button>
+      <button onclick="pressPinDigit('9')" class="h-16 rounded-2xl theme-bg-card border theme-border text-xl font-bold active:scale-95 transition">9</button>
+      <button onclick="cancelPinSetup()" id="pinCancelBtn" class="h-16 rounded-2xl theme-bg-card border theme-border text-xs font-bold text-rose-400 hidden items-center justify-center">ပယ်ဖျက်</button>
+      <div id="pinEmptySlot"></div>
+      <button onclick="pressPinDigit('0')" class="h-16 rounded-2xl theme-bg-card border theme-border text-xl font-bold active:scale-95 transition">0</button>
+      <button onclick="backspacePin()" class="h-16 rounded-2xl theme-bg-card border theme-border text-lg flex items-center justify-center active:scale-95 transition">
+        <i class="fa-solid fa-delete-left"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= TOP GLOBAL NAVIGATION BAR ================= -->
+  <div class="theme-bg-header px-3 pt-2.5 pb-2 border-b theme-border flex items-center justify-between shrink-0 z-30">
+    <div class="grid grid-cols-3 theme-bg-card p-1 rounded-xl border theme-border w-full gap-1">
+      <button onclick="switchMainTab('notes')" id="topTabNotes" class="py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow transition">
+        <i class="fa-solid fa-note-sticky"></i> မှတ်စု
+      </button>
+      <button onclick="switchMainTab('videos')" id="topTabVideos" class="py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 theme-text-muted transition">
+        <i class="fa-solid fa-circle-play text-blue-400"></i> MX Player
+      </button>
+      <button onclick="switchMainTab('settings')" id="topTabSettings" class="py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 theme-text-muted transition">
+        <i class="fa-solid fa-gear"></i> Settings
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= 1. NOTES VIEW ================= -->
+  <div id="notesTab" class="flex-1 flex flex-col overflow-hidden relative">
+    <header class="px-4 pt-3 pb-2 shrink-0">
+      <div class="flex items-center justify-between mb-2.5">
+        <div>
+          <h1 class="text-xl font-bold theme-text-main">မှတ်စုများ (Notes)</h1>
+          <p id="noteCountText" class="text-[11px] theme-text-muted">မှတ်စုများ</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="lockAppNow()" id="quickLockBtnNotes" class="hidden w-9 h-9 rounded-xl theme-bg-card border theme-border items-center justify-center text-amber-400" title="Lock App">
+            <i class="fa-solid fa-lock"></i>
+          </button>
+          <button onclick="toggleNoteLayout()" id="layoutToggleBtn" class="w-9 h-9 rounded-xl theme-bg-card border theme-border flex items-center justify-center theme-text-main">
+            <i class="fa-solid fa-table-cells-large"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 theme-text-muted text-xs"></i>
+        <input id="noteSearchInput" oninput="renderNotes()" type="text" placeholder="မှတ်စုများ ရှာဖွေရန်..." 
+          class="w-full theme-bg-card border theme-border text-xs theme-text-main rounded-xl pl-9 pr-4 py-2.5 focus:outline-none">
+      </div>
+    </header>
+
+    <div id="notesContainer" class="flex-1 overflow-y-auto px-4 pb-24 pt-2 grid grid-cols-2 gap-2.5 content-start"></div>
+
+    <button onclick="openNoteEditor(null)" class="absolute bottom-5 right-5 px-4 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg flex items-center gap-2 text-xs font-bold transition transform active:scale-95 z-20">
+      <i class="fa-solid fa-plus text-sm"></i> မှတ်စုသစ်
+    </button>
+  </div>
+
+  <!-- ================= 2. CLEAN MX PRIVATE VIDEO VAULT VIEW ================= -->
+  <div id="videosTab" class="flex-1 flex flex-col overflow-hidden hidden relative">
+    
+    <!-- Minimal Clean Header -->
+    <header class="px-4 pt-3.5 pb-3 border-b theme-border flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md">
+          <i class="fa-solid fa-play text-sm ml-0.5"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-extrabold theme-text-main leading-tight">MX Video Vault</h1>
+          <p id="vaultCountSub" class="text-[11px] theme-text-muted">သိမ်းဆည်းထားသော ဗီဒီယို (0) ခု</p>
+        </div>
+      </div>
+
+      <button onclick="lockAppNow()" id="quickLockBtnVideos" class="hidden px-3 py-1.5 rounded-xl theme-bg-card border theme-border text-xs font-bold text-amber-400 items-center gap-1.5">
+        <i class="fa-solid fa-lock"></i> Lock
+      </button>
+    </header>
+
+    <!-- Single Action Button: Move / Import Video from Phone -->
+    <div class="px-4 pt-3 pb-1 shrink-0">
+      <button onclick="triggerImportVideos()" class="w-full p-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/25 flex items-center justify-between transition active:scale-[0.99]">
+        <div class="flex items-center gap-3 text-left">
+          <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white text-lg shrink-0">
+            <i class="fa-solid fa-file-video"></i>
+          </div>
+          <div>
+            <h3 class="text-xs sm:text-sm font-bold">ဖုန်းဖိုင်ထဲမှ ဗီဒီယိုထည့်ရန် (Move to App)</h3>
+            <p class="text-[10px] text-blue-100 mt-0.5">ရွေးချယ်လိုက်သော ဗီဒီယိုများကို ဒီ App ထဲသို့ သိမ်းဆည်းပေးပါမည်</p>
+          </div>
+        </div>
+        <i class="fa-solid fa-plus text-base mr-1"></i>
+      </button>
+      <!-- Hidden Fallback File Input -->
+      <input id="vaultVideoInput" type="file" accept="video/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" onchange="handleImportVideoFiles(event)">
+      <input id="vaultAnyInput" type="file" accept="*/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" onchange="handleImportVideoFiles(event)">
+      <button onclick="document.getElementById('vaultAnyInput').click()" class="w-full mt-2 py-2 rounded-xl theme-bg-card border theme-border text-[11px] font-bold theme-text-muted">ဗီဒီယိုမပေါ်ပါက - ဖိုင်အားလုံးမှ ရွေးရန်</button>
+    </div>
+
+    <!-- Stored Videos List -->
+    <div id="mxVaultList" class="flex-1 overflow-y-auto px-4 py-3 pb-24 space-y-2.5"></div>
+  </div>
+
+  <!-- ================= 3. SETTINGS VIEW (THEME & APP LOCK) ================= -->
+  <div id="settingsTab" class="flex-1 flex flex-col overflow-y-auto hidden px-4 py-4 pb-24 space-y-4">
+    <h1 class="text-xl font-bold theme-text-main">Settings (ပြင်ဆင်ချက်များ)</h1>
+
+    <!-- Theme Selector Card -->
+    <div class="theme-bg-card border theme-border rounded-2xl p-4 space-y-3">
+      <div class="flex items-center gap-2.5">
+        <i class="fa-solid fa-palette text-blue-400 text-lg"></i>
+        <div>
+          <h3 class="text-sm font-bold theme-text-main">App Theme (အရောင်ပြောင်းရန်)</h3>
+          <p class="text-[11px] theme-text-muted">စိတ်ကြိုက် App အရောင်အသွေးကို ရွေးချယ်ပါ</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5 pt-1">
+        <button onclick="applyTheme('default')" class="p-2.5 rounded-xl bg-[#0b0f19] text-white border border-slate-700 flex items-center gap-2.5 text-xs font-semibold">
+          <span class="w-4 h-4 rounded-full bg-blue-500"></span> Dark Blue (မူလ)
+        </button>
+        <button onclick="applyTheme('theme-amoled')" class="p-2.5 rounded-xl bg-black text-white border border-neutral-700 flex items-center gap-2.5 text-xs font-semibold">
+          <span class="w-4 h-4 rounded-full bg-neutral-400"></span> AMOLED Black
+        </button>
+        <button onclick="applyTheme('theme-light')" class="p-2.5 rounded-xl bg-slate-100 text-slate-900 border border-slate-300 flex items-center gap-2.5 text-xs font-semibold">
+          <span class="w-4 h-4 rounded-full bg-blue-600"></span> Clean Light
+        </button>
+        <button onclick="applyTheme('theme-emerald')" class="p-2.5 rounded-xl bg-[#051814] text-emerald-100 border border-emerald-800 flex items-center gap-2.5 text-xs font-semibold">
+          <span class="w-4 h-4 rounded-full bg-emerald-400"></span> Emerald Green
+        </button>
+        <button onclick="applyTheme('theme-purple')" class="p-2.5 rounded-xl bg-[#13091f] text-purple-100 border border-purple-800 flex items-center gap-2.5 text-xs font-semibold col-span-2">
+          <span class="w-4 h-4 rounded-full bg-purple-400"></span> Royal Purple
+        </button>
+      </div>
+    </div>
+
+    <!-- App Lock Security Card -->
+    <div class="theme-bg-card border theme-border rounded-2xl p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-lock text-amber-400 text-lg"></i>
+          <div>
+            <h3 class="text-sm font-bold theme-text-main">App PIN Lock (လုံခြုံရေး လော့ခ်)</h3>
+            <p id="lockStatusText" class="text-[11px] theme-text-muted">လက်ရှိတွင် ပိတ်ထားပါသည်</p>
+          </div>
+        </div>
+        <span id="lockBadge" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-700 text-slate-300">OFF</span>
+      </div>
+
+      <div class="flex flex-wrap gap-2 pt-1">
+        <button onclick="startPinSetup()" class="flex-1 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold">
+          <i class="fa-solid fa-key mr-1"></i> PIN သတ်မှတ် / ပြောင်းမည်
+        </button>
+        <button onclick="lockAppNow()" id="settingsLockNowBtn" class="hidden py-2.5 px-3 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold">
+          <i class="fa-solid fa-lock mr-1"></i> ချက်ချင်း Lock ချမည်
+        </button>
+        <button onclick="disableAppLock()" id="settingsDisableLockBtn" class="hidden py-2.5 px-3 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-400 text-xs font-bold">
+          Lock ပိတ်မည်
+        </button>
+      </div>
+    </div>
+
+    <!-- Video Rotation & Vault Info Card -->
+    <div class="theme-bg-card border theme-border rounded-2xl p-4 space-y-2 text-xs theme-text-muted leading-relaxed">
+      <h4 class="font-bold theme-text-main flex items-center gap-1.5">
+        <i class="fa-solid fa-circle-info text-blue-400"></i> ဗီဒီယို သိမ်းဆည်းမှုနှင့် Restore လမ်းညွှန်
+      </h4>
+      <p>• <b>ဗီဒီယိုထည့်သွင်းခြင်း:</b> ရွေးချယ်လိုက်သော ဗီဒီယိုဖိုင်ကို App ၏ ကိုယ်ပိုင် Database (IndexedDB Vault) ထဲသို့ သိမ်းဆည်းပေးပါသည်။ Folder ရွေးနည်း (Chrome/Edge) ဖြင့် ထည့်လျှင် မူရင်းဖိုင်ကို ဖုန်းထဲမှ အလိုအလျောက် ဖယ်ပေးပါသည်။ ဤနည်း မရသော browser တွင် ဖိုင်ရွေးနည်းသုံးမည်ဖြစ်ပြီး မူရင်းဖိုင်ကို browser က ဖျက်ပေး၍မရပါ။</p>
+      <p>• <b>Restore ပြုလုပ်ခြင်း:</b> ဗီဒီယိုဘေးရှိ <b>[Restore]</b> ခလုတ်ကိုနှိပ်ပါက မူရင်း Folder ထဲသို့ Download မလုပ်ဘဲ တိုက်ရိုက်ပြန်ထည့်ပေးပြီး App ထဲမှ ဖယ်ရှားပေးပါမည်။ (မူရင်းဖိုင် မဖျက်ထားသေးလျှင် App ထဲမှသာ ဖယ်ရှားပါမည်။)</p>
+      <p>• <b>Auto Rotate:</b> ဗီဒီယိုကြည့်နေစဉ် ဖုန်းကို ကန့်လန့် (Landscape) လှည့်လိုက်ပါက အလိုအလျောက် မျက်နှာပြင်အပြည့် အလျားလိုက် ပြောင်းလဲပေးပါသည်။</p>
+    </div>
+  </div>
+
+  <!-- ================= BOTTOM NAVIGATION BAR ================= -->
+  <nav class="h-14 theme-bg-header border-t theme-border flex items-center justify-around px-3 shrink-0 z-30">
+    <button onclick="switchMainTab('notes')" id="navNotesBtn" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-amber-400 bg-amber-500/10 font-bold text-xs transition">
+      <i class="fa-solid fa-note-sticky"></i>
+      <span>မှတ်စု</span>
+    </button>
+
+    <button onclick="switchMainTab('videos')" id="navVideosBtn" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl theme-text-muted font-bold text-xs transition">
+      <i class="fa-solid fa-circle-play"></i>
+      <span>MX Player</span>
+    </button>
+
+    <button onclick="switchMainTab('settings')" id="navSettingsBtn" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl theme-text-muted font-bold text-xs transition">
+      <i class="fa-solid fa-gear"></i>
+      <span>Settings</span>
+    </button>
+  </nav>
+
+  <!-- ================= 4. NOTE EDITOR MODAL ================= -->
+  <div id="noteEditorModal" class="fixed inset-0 theme-bg-main z-40 hidden flex-col max-w-md mx-auto">
+    <div class="flex items-center justify-between px-4 py-3 border-b theme-border">
+      <button onclick="saveAndCloseNote()" class="flex items-center gap-1.5 text-amber-400 font-bold text-sm py-1 px-2.5 rounded-xl bg-amber-500/10">
+        <i class="fa-solid fa-chevron-left"></i> သိမ်းမည်
+      </button>
+      <div class="flex items-center gap-2">
+        <button onclick="togglePinCurrentNote()" id="editorPinBtn" class="w-9 h-9 rounded-full flex items-center justify-center theme-text-muted">
+          <i class="fa-solid fa-thumbtack"></i>
+        </button>
+        <button onclick="deleteCurrentNote()" id="editorDeleteBtn" class="w-9 h-9 rounded-full flex items-center justify-center text-rose-400">
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
+      </div>
+    </div>
+    <div class="flex-1 flex flex-col p-4 overflow-y-auto">
+      <span id="editorTimestamp" class="text-[11px] theme-text-muted mb-1.5">ယနေ့</span>
+      <input id="editorTitle" type="text" placeholder="ခေါင်းစဉ် ရေးပါ..." class="w-full bg-transparent text-lg font-bold theme-text-main focus:outline-none mb-3">
+      <textarea id="editorContent" placeholder="မှတ်စု စတင်ရေးသားပါ..." class="w-full flex-1 bg-transparent text-sm leading-relaxed theme-text-main focus:outline-none resize-none"></textarea>
+    </div>
+  </div>
+
+  <!-- ================= 5. MX PLAYER FULLSCREEN & AUTO-LANDSCAPE OVERLAY ================= -->
+  <div id="mxPlayerOverlay" class="fixed inset-0 bg-black z-50 hidden flex-col select-none overflow-hidden">
+    <div id="brightnessFilter" class="pointer-events-none absolute inset-0 bg-black opacity-0 z-10 transition-opacity duration-75"></div>
+
+    <div id="videoStage" class="relative flex-1 w-full h-full flex items-center justify-center bg-black overflow-hidden">
+      <video id="mxVideo" class="w-full h-full video-fit-contain transition-transform duration-150" playsinline></video>
+
+      <!-- 3-Zone Gesture Layer -->
+      <div id="gestureSurface" class="absolute inset-0 z-20 flex">
+        <div class="w-1/3 h-full flex items-center justify-center" data-zone="left"></div>
+        <div class="w-1/3 h-full flex items-center justify-center" data-zone="center"></div>
+        <div class="w-1/3 h-full flex items-center justify-center" data-zone="right"></div>
+      </div>
+
+      <!-- Gesture Feedback Popup -->
+      <div id="gestureIndicator" class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 bg-black/80 backdrop-blur-md px-5 py-3.5 rounded-2xl border border-white/15 hidden flex-col items-center gap-2 min-w-[140px]">
+        <i id="gestureIcon" class="fa-solid fa-volume-high text-2xl text-blue-400"></i>
+        <span id="gestureText" class="text-sm font-bold text-white">100%</span>
+        <div class="w-28 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+          <div id="gestureBar" class="h-full bg-blue-500 w-full"></div>
+        </div>
+      </div>
+
+      <!-- Unlock Button -->
+      <button id="unlockScreenBtn" onclick="toggleScreenLock()" class="hidden absolute top-6 left-6 z-40 w-12 h-12 rounded-2xl bg-blue-600 text-white items-center justify-center text-lg shadow-xl">
+        <i class="fa-solid fa-lock"></i>
+      </button>
+
+      <!-- Top HUD -->
+      <div id="mxTopHud" class="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 via-black/50 to-transparent p-3.5 flex items-center justify-between z-30 transition-opacity duration-200">
+        <div class="flex items-center gap-2.5 min-w-0 pr-2">
+          <button onclick="closeMxPlayer()" class="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white shrink-0">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="truncate">
+            <h2 id="mxPlayingTitle" class="text-xs sm:text-sm font-bold text-white truncate">Video.mp4</h2>
+            <p class="text-[10px] text-blue-400 font-semibold">MX Vault Player • Auto-Rotate Ready</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button onclick="cyclePlaybackSpeed()" id="mxSpeedBtn" class="px-2.5 py-1.5 rounded-lg bg-white/15 text-xs font-bold text-white">1.0x</button>
+          <button onclick="toggleLandscapeFullscreen()" class="px-2.5 py-1.5 rounded-lg bg-blue-600 text-xs font-bold text-white flex items-center gap-1" title="အလျားလိုက်ကြည့်ရန်">
+            <i class="fa-solid fa-mobile-screen-button rotate-90"></i> Landscape
+          </button>
+        </div>
+      </div>
+
+      <!-- Bottom HUD -->
+      <div id="mxBottomHud" class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent px-4 pt-6 pb-4 z-30 transition-opacity duration-200">
+        <div class="flex items-center justify-between text-[10px] text-slate-300/80 mb-1.5 px-1">
+          <span>☀️ ဘယ်ပွတ် = အလင်း</span>
+          <span>📱 ဖုန်းလှည့်လျှင် အလျားလိုက်ပြောင်းသည်</span>
+          <span>🔊 ညာပွတ် = အသံ</span>
+        </div>
+
+        <div class="flex items-center gap-2.5 mb-3">
+          <span id="mxCurrentTime" class="text-xs font-mono text-blue-400 font-bold w-11 text-right">00:00</span>
+          <input id="mxSeekBar" type="range" min="0" max="100" value="0" step="0.1" class="mx-slider flex-1 cursor-pointer">
+          <span id="mxDuration" class="text-xs font-mono text-slate-300 w-11">00:00</span>
+        </div>
+
+        <div class="flex items-center justify-between px-1">
+          <button onclick="toggleScreenLock()" class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white text-sm">
+            <i class="fa-solid fa-lock"></i>
+          </button>
+
+          <div class="flex items-center gap-4">
+            <button onclick="skipVideo(-10)" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">-10s</button>
+            <button onclick="togglePlayPause()" id="mxPlayPauseBtn" class="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center text-white text-xl shadow-lg">
+              <i class="fa-solid fa-pause"></i>
+            </button>
+            <button onclick="skipVideo(10)" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">+10s</button>
+          </div>
+
+          <button onclick="cycleAspectRatio()" class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white text-sm">
+            <i class="fa-solid fa-expand"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Folder video picker modal (move-to-app, original gets removed) -->
+  <div id="folderPickModal" class="fixed inset-0 z-[60] bg-black/70 hidden items-end justify-center max-w-md mx-auto">
+    <div class="theme-bg-card border theme-border rounded-t-3xl w-full max-h-[80dvh] flex flex-col p-4">
+      <h3 class="text-sm font-bold theme-text-main mb-0.5">ရွေးချယ်ထားသော Folder ထဲက ဗီဒီယိုများ</h3>
+      <p class="text-[11px] theme-text-muted mb-3">App ထဲသို့ ရွှေ့မည့်ဗီဒီယိုများကို ရွေးပါ (မူရင်းဖိုင် ပျက်သွားပါမည်)</p>
+      <div id="folderPickList" class="flex-1 overflow-y-auto space-y-2 mb-3"></div>
+      <div class="flex gap-2">
+        <button onclick="closeFolderPicker()" class="flex-1 py-2.5 rounded-xl theme-bg-main border theme-border text-xs font-bold theme-text-main">ပယ်ဖျက်</button>
+        <button onclick="confirmFolderImport()" class="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold">ရွှေ့မည်</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastBanner" class="fixed bottom-16 left-1/2 -translate-x-1/2 bg-slate-900 border border-blue-500/50 text-white px-4 py-2.5 rounded-2xl text-xs font-semibold shadow-2xl z-[90] hidden items-center gap-2">
+    <i class="fa-solid fa-circle-check text-blue-400"></i>
+    <span id="toastText">အောင်မြင်ပါသည်</span>
+  </div>
+
+  <script>
+    function esc(str) {
+      return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toastBanner');
+      document.getElementById('toastText').innerText = msg;
+      t.classList.remove('hidden');
+      t.classList.add('flex');
+      setTimeout(() => {
+        t.classList.add('hidden');
+        t.classList.remove('flex');
+      }, 2800);
+    }
+
+    /*************************************************************
+     * PART 1: THEME & APP PIN LOCK SYSTEM
+     *************************************************************/
+    let savedTheme = localStorage.getItem('mx_app_theme') || 'default';
+    let savedPin = localStorage.getItem('mx_app_pin') || null;
+    let enteredPin = '';
+    let pinMode = 'unlock'; // 'unlock' or 'setup'
+
+    function applyTheme(themeName) {
+      document.body.classList.remove('theme-amoled', 'theme-light', 'theme-emerald', 'theme-purple');
+      if (themeName !== 'default') {
+        document.body.classList.add(themeName);
+      }
+      localStorage.setItem('mx_app_theme', themeName);
+    }
+    applyTheme(savedTheme);
+
+    function updateLockUIStatus() {
+      const hasPin = !!savedPin;
+      document.getElementById('lockStatusText').innerText = hasPin
+        ? 'PIN နံပါတ်ဖြင့် လုံခြုံရေးဖွင့်ထားပါသည်'
+        : 'လက်ရှိတွင် ပိတ်ထားပါသည်';
+      const badge = document.getElementById('lockBadge');
+      badge.innerText = hasPin ? 'ON' : 'OFF';
+      badge.className = hasPin
+        ? 'px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+        : 'px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-700 text-slate-300';
+
+      ['quickLockBtnNotes', 'quickLockBtnVideos', 'settingsLockNowBtn', 'settingsDisableLockBtn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (hasPin) {
+          el.classList.remove('hidden');
+          el.classList.add('flex');
+        } else {
+          el.classList.add('hidden');
+          el.classList.remove('flex');
+        }
+      });
+    }
+
+    function showLockScreen(mode) {
+      pinMode = mode;
+      enteredPin = '';
+      updatePinDots();
+      document.getElementById('pinErrorMsg').innerText = '';
+      const overlay = document.getElementById('appLockOverlay');
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex');
+
+      if (mode === 'setup') {
+        document.getElementById('lockScreenTitle').innerText = 'PIN အသစ် (၄) လုံး သတ်မှတ်ပါ';
+        document.getElementById('lockScreenSub').innerText = 'App ဖွင့်တိုင်း ရိုက်ထည့်ရမည့် နံပါတ်ဖြစ်ပါသည်';
+        document.getElementById('pinCancelBtn').classList.remove('hidden');
+        document.getElementById('pinCancelBtn').classList.add('flex');
+        document.getElementById('pinEmptySlot').classList.add('hidden');
+      } else {
+        document.getElementById('lockScreenTitle').innerText = 'App Lock ဖွင့်ရန် PIN ရိုက်ထည့်ပါ';
+        document.getElementById('lockScreenSub').innerText = 'သတ်မှတ်ထားသော ဂဏန်း ၄ လုံး ရိုက်ထည့်ပါ';
+        document.getElementById('pinCancelBtn').classList.add('hidden');
+        document.getElementById('pinCancelBtn').classList.remove('flex');
+        document.getElementById('pinEmptySlot').classList.remove('hidden');
+      }
+    }
+
+    function pressPinDigit(d) {
+      if (enteredPin.length >= 4) return;
+      enteredPin += d;
+      updatePinDots();
+
+      if (enteredPin.length === 4) {
+        setTimeout(() => {
+          if (pinMode === 'setup') {
+            savedPin = enteredPin;
+            localStorage.setItem('mx_app_pin', savedPin);
+            document.getElementById('appLockOverlay').classList.add('hidden');
+            document.getElementById('appLockOverlay').classList.remove('flex');
+            updateLockUIStatus();
+            showToast('App PIN Lock သတ်မှတ်ပြီးပါပြီ');
+          } else {
+            if (enteredPin === savedPin) {
+              document.getElementById('appLockOverlay').classList.add('hidden');
+              document.getElementById('appLockOverlay').classList.remove('flex');
+            } else {
+              document.getElementById('pinErrorMsg').innerText = 'PIN နံပါတ် မှားယွင်းနေပါသည်!';
+              enteredPin = '';
+              updatePinDots();
+            }
+          }
+        }, 150);
+      }
+    }
+
+    function backspacePin() {
+      enteredPin = enteredPin.slice(0, -1);
+      updatePinDots();
+    }
+
+    function updatePinDots() {
+      const dots = document.getElementById('pinDotsContainer').children;
+      for (let i = 0; i < 4; i++) {
+        dots[i].className = i < enteredPin.length
+          ? 'w-3.5 h-3.5 rounded-full bg-blue-500 border-2 border-blue-500 scale-110 transition-all'
+          : 'w-3.5 h-3.5 rounded-full border-2 border-blue-500 transition-all';
+      }
+    }
+
+    function startPinSetup() { showLockScreen('setup'); }
+    function cancelPinSetup() {
+      document.getElementById('appLockOverlay').classList.add('hidden');
+      document.getElementById('appLockOverlay').classList.remove('flex');
+    }
+    function lockAppNow() { if (savedPin) showLockScreen('unlock'); }
+    function disableAppLock() {
+      savedPin = null;
+      localStorage.removeItem('mx_app_pin');
+      updateLockUIStatus();
+      showToast('App Lock ကို ပိတ်လိုက်ပါပြီ');
+    }
+
+    if (savedPin) showLockScreen('unlock');
+    updateLockUIStatus();
+
+    /*************************************************************
+     * PART 2: NOTES APP
+     *************************************************************/
+    function loadSavedNotes() {
+      try { const v = JSON.parse(localStorage.getItem('superapp_notes_v2')); return Array.isArray(v) ? v : null; }
+      catch (e) { return null; }
+    }
+    let notes = loadSavedNotes() || [
+      {
+        id: 1,
+        title: "📌 မှတ်စု နှင့် MX Vault အသုံးပြုပုံ",
+        content: "• MX Player ထဲတွင် ဖုန်းထဲမှ ဗီဒီယိုများကို ရွေးထည့်ပြီး သိမ်းထားနိုင်ပါသည်။\n• Restore နှိပ်ပါက ဖုန်းထဲသို့ ပြန်ရောက်သွားပါမည်။",
+        pinned: true,
+        updatedAt: "ယနေ့"
+      }
+    ];
+    let isGridView = true;
+    let editingNoteId = null;
+    let currentEditorPinned = false;
+
+    function renderNotes() {
+      const container = document.getElementById('notesContainer');
+      const query = document.getElementById('noteSearchInput').value.toLowerCase();
+      container.className = isGridView
+        ? "flex-1 overflow-y-auto px-4 pb-24 pt-2 grid grid-cols-2 gap-2.5 content-start"
+        : "flex-1 overflow-y-auto px-4 pb-24 pt-2 flex flex-col gap-2.5";
+
+      let filtered = notes.filter(n => n.title.toLowerCase().includes(query) || n.content.toLowerCase().includes(query));
+      filtered.sort((a, b) => (b.pinned === a.pinned) ? 0 : b.pinned ? 1 : -1);
+      document.getElementById('noteCountText').innerText = `မှတ်စု ${filtered.length} ခု ရှိပါသည်`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="col-span-2 py-16 text-center theme-text-muted text-xs">မှတ်စု မရှိသေးပါ</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(note => `
+        <div onclick="openNoteEditor(${note.id})" class="theme-bg-card border theme-border rounded-2xl p-3.5 flex flex-col justify-between cursor-pointer hover:border-amber-400/50 transition shadow">
+          <div>
+            <div class="flex items-start justify-between gap-1 mb-1">
+              <h3 class="font-bold text-xs sm:text-sm theme-text-main line-clamp-1">${esc(note.title) || 'ခေါင်းစဉ်မဲ့'}</h3>
+              ${note.pinned ? '<i class="fa-solid fa-thumbtack text-amber-400 text-[11px] shrink-0 rotate-45"></i>' : ''}
+            </div>
+            <p class="text-[11px] theme-text-muted line-clamp-4 leading-relaxed whitespace-pre-line mb-2">${esc(note.content)}</p>
+          </div>
+          <div class="text-[10px] theme-text-muted pt-1 border-t theme-border">${esc(note.updatedAt)}</div>
+        </div>
+      `).join('');
+    }
+
+    function toggleNoteLayout() {
+      isGridView = !isGridView;
+      document.getElementById('layoutToggleBtn').innerHTML = isGridView
+        ? '<i class="fa-solid fa-table-cells-large"></i>'
+        : '<i class="fa-solid fa-bars"></i>';
+      renderNotes();
+    }
+
+    function openNoteEditor(id) {
+      const modal = document.getElementById('noteEditorModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      if (id) {
+        const n = notes.find(x => x.id === id);
+        editingNoteId = n.id;
+        document.getElementById('editorTitle').value = n.title;
+        document.getElementById('editorContent').value = n.content;
+        currentEditorPinned = !!n.pinned;
+        document.getElementById('editorTimestamp').innerText = n.updatedAt || 'ယနေ့';
+        document.getElementById('editorDeleteBtn').classList.remove('invisible');
+      } else {
+        editingNoteId = null;
+        document.getElementById('editorTitle').value = '';
+        document.getElementById('editorContent').value = '';
+        currentEditorPinned = false;
+        document.getElementById('editorTimestamp').innerText = 'ယနေ့';
+        document.getElementById('editorDeleteBtn').classList.add('invisible');
+      }
+      document.getElementById('editorPinBtn').className = `w-9 h-9 rounded-full flex items-center justify-center ${currentEditorPinned ? 'text-amber-400' : 'theme-text-muted'}`;
+    }
+
+    function togglePinCurrentNote() {
+      currentEditorPinned = !currentEditorPinned;
+      document.getElementById('editorPinBtn').className = `w-9 h-9 rounded-full flex items-center justify-center ${currentEditorPinned ? 'text-amber-400' : 'theme-text-muted'}`;
+    }
+
+    function saveAndCloseNote() {
+      const title = document.getElementById('editorTitle').value.trim();
+      const content = document.getElementById('editorContent').value.trim();
+      if (title || content) {
+        const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        if (editingNoteId) {
+          const idx = notes.findIndex(n => n.id === editingNoteId);
+          if (idx > -1) notes[idx] = { ...notes[idx], title: title || 'ခေါင်းစဉ်မဲ့', content, pinned: currentEditorPinned, updatedAt: `ယနေ့ • ${nowStr}` };
+        } else {
+          notes.unshift({ id: Date.now(), title: title || 'ခေါင်းစဉ်မဲ့', content, pinned: currentEditorPinned, updatedAt: `ယနေ့ • ${nowStr}` });
+        }
+        localStorage.setItem('superapp_notes_v2', JSON.stringify(notes));
+      }
+      document.getElementById('noteEditorModal').classList.add('hidden');
+      document.getElementById('noteEditorModal').classList.remove('flex');
+      renderNotes();
+    }
+
+    function deleteCurrentNote() {
+      if (editingNoteId) {
+        if (!confirm('ဤမှတ်စုကို ဖျက်မလား?')) return;
+        notes = notes.filter(n => n.id !== editingNoteId);
+        localStorage.setItem('superapp_notes_v2', JSON.stringify(notes));
+      }
+      document.getElementById('noteEditorModal').classList.add('hidden');
+      document.getElementById('noteEditorModal').classList.remove('flex');
+      renderNotes();
+    }
+
+    /*************************************************************
+     * PART 3: INDEXED-DB VIDEO VAULT (IMPORT & RESTORE TO PHONE)
+     *************************************************************/
+    let db = null;
+    let vaultVideos = [];
+
+    const request = indexedDB.open('MXPrivateVaultDB', 1);
+    request.onupgradeneeded = (e) => {
+      const database = e.target.result;
+      if (!database.objectStoreNames.contains('videos')) {
+        database.createObjectStore('videos', { keyPath: 'id' });
+      }
+    };
+    request.onsuccess = (e) => {
+      db = e.target.result;
+      loadVaultVideos();
+    };
+    request.onerror = () => showToast('Video Vault Database ဖွင့်၍မရပါ');
+
+    function loadVaultVideos() {
+      if (!db) return;
+      const tx = db.transaction('videos', 'readonly');
+      const store = tx.objectStore('videos');
+      const getAll = store.getAll();
+      getAll.onsuccess = () => {
+        vaultVideos = getAll.result || [];
+        renderVaultList();
+      };
+    }
+
+    const HAS_FOLDER_API = typeof window.showDirectoryPicker === 'function';
+    const VIDEO_EXT = /\.(mp4|mkv|mov|avi|webm|3gp|m4v|ts|flv|wmv)$/i;
+    let pendingFolder = null; // { dir, entries: [{name, handle}] }
+
+    function idbPut(record) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('videos', 'readwrite');
+        tx.objectStore('videos').put(record);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error || new Error('aborted'));
+      });
+    }
+    function idbDelete(id) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('videos', 'readwrite');
+        tx.objectStore('videos').delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    function makeRecord(file, dirHandle, originalRemoved) {
+      return {
+        id: 'vid_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        name: file.name,
+        size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
+        type: file.type || 'video/mp4',
+        addedAt: new Date().toLocaleDateString(),
+        blob: file,
+        dirHandle: dirHandle || null,       // original folder (for direct restore)
+        originalRemoved: !!originalRemoved  // true = original deleted from phone
+      };
+    }
+
+    async function triggerImportVideos() {
+      if (!db) { showToast('Database မပြင်ဆင်ရသေးပါ၊ ခဏစောင့်ပါ'); return; }
+      if (HAS_FOLDER_API) {
+        try {
+          await openFolderPicker();
+          return;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+          showToast('Folder ရွေးနည်း မရပါ၊ ဖိုင်ရွေးနည်းသို့ ပြောင်းပါမည်');
+        }
+      }
+      document.getElementById('vaultVideoInput').click();
+    }
+
+    async function openFolderPicker() {
+      const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+      const entries = [];
+      for await (const [name, handle] of dir.entries()) {
+        if (handle.kind === 'file' && VIDEO_EXT.test(name)) entries.push({ name, handle });
+      }
+      if (!entries.length) { showToast('ဤ Folder ထဲတွင် ဗီဒီယို မတွေ့ပါ'); return; }
+      pendingFolder = { dir, entries };
+      document.getElementById('folderPickList').innerHTML = entries.map((en, i) => `
+        <label class="flex items-center gap-3 p-2.5 rounded-xl theme-bg-main border theme-border cursor-pointer">
+          <input type="checkbox" data-idx="${i}" class="w-4 h-4 accent-blue-600 shrink-0">
+          <span class="text-xs theme-text-main truncate">${esc(en.name)}</span>
+        </label>`).join('');
+      const m = document.getElementById('folderPickModal');
+      m.classList.remove('hidden'); m.classList.add('flex');
+    }
+
+    function closeFolderPicker() {
+      const m = document.getElementById('folderPickModal');
+      m.classList.add('hidden'); m.classList.remove('flex');
+      pendingFolder = null;
+    }
+
+    async function confirmFolderImport() {
+      if (!pendingFolder) return;
+      const { dir, entries } = pendingFolder;
+      const picked = [...document.querySelectorAll('#folderPickList input:checked')].map(c => entries[+c.dataset.idx]);
+      closeFolderPicker();
+      if (!picked.length) return;
+
+      showToast('ရွှေ့နေပါသည်... ခဏစောင့်ပါ');
+      let ok = 0, removedOk = 0;
+      for (const en of picked) {
+        try {
+          const file = await en.handle.getFile();
+          const rec = makeRecord(file, dir, false);
+          rec.name = en.name;
+          await idbPut(rec);               // 1) save inside app first
+          ok++;
+          try {                            // 2) only then remove original
+            await dir.removeEntry(en.name);
+            rec.originalRemoved = true;
+            await idbPut(rec);
+            removedOk++;
+          } catch (e) { console.warn('remove failed', e); }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      loadVaultVideos();
+      if (ok === removedOk) showToast(`ဗီဒီယို (${ok}) ဖိုင် App ထဲသို့ ရွှေ့ပြီးပါပြီ`);
+      else showToast(`App ထဲသို့ ${ok} ဖိုင် သိမ်းပြီး၊ မူရင်း ${ok - removedOk} ဖိုင် ဖျက်မရပါ`);
+    }
+
+    async function handleImportVideoFiles(event) {
+      const files = Array.from(event.target.files);
+      event.target.value = '';
+      if (!files.length || !db) return;
+      let ok = 0;
+      for (const file of files) {
+        try { await idbPut(makeRecord(file, null, false)); ok++; }
+        catch (e) { console.error(e); showToast('သိမ်း၍မရပါ (နေရာမလောက်နိုင်ပါ)'); }
+      }
+      loadVaultVideos();
+      if (ok) showToast(`ဗီဒီယို (${ok}) ဖိုင် သိမ်းပြီး • မူရင်းဖိုင်ကို browser က ဖျက်ပေး၍မရပါ`);
+    }
+
+    function renderVaultList() {
+      const listEl = document.getElementById('mxVaultList');
+      document.getElementById('vaultCountSub').innerText = `သိမ်းဆည်းထားသော ဗီဒီယို (${vaultVideos.length}) ခု`;
+
+      if (vaultVideos.length === 0) {
+        listEl.innerHTML = `
+          <div class="py-16 px-4 text-center theme-bg-card border theme-border rounded-2xl">
+            <div class="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-2xl mx-auto mb-3">
+              <i class="fa-solid fa-film"></i>
+            </div>
+            <h3 class="text-sm font-bold theme-text-main mb-1">App ထဲတွင် ဗီဒီယို မရှိသေးပါ</h3>
+            <p class="text-xs theme-text-muted">အပေါ်ရှိ <b>"ဖုန်းဖိုင်ထဲမှ ဗီဒီယိုထည့်ရန်"</b> ခလုတ်ကိုနှိပ်ပြီး ဗီဒီယိုများ ရွေးထည့်ပါ</p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = vaultVideos.map((v, index) => `
+        <div class="theme-bg-card border theme-border rounded-2xl p-3 flex items-center justify-between gap-3 shadow-sm">
+          <div onclick="playVaultVideo(${index})" class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
+            <div class="w-16 h-12 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center text-blue-400 text-lg shrink-0">
+              <i class="fa-solid fa-circle-play"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <h4 class="text-xs sm:text-sm font-bold theme-text-main truncate">${esc(v.name)}</h4>
+              <p class="text-[10px] theme-text-muted mt-0.5">${esc(v.size)} • ${v.originalRemoved ? 'မူရင်းဖိုင် ဖယ်ပြီး' : 'မူရင်းဖိုင် ကျန်နေသေး'}</p>
+            </div>
+          </div>
+          <button onclick="restoreVideoToPhone('${esc(v.id)}')" class="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold flex items-center gap-1.5 shrink-0 active:scale-95 transition">
+            <i class="fa-solid fa-rotate-left"></i> Restore
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function downloadFallback(videoItem) {
+      const url = URL.createObjectURL(videoItem.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = videoItem.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    async function restoreVideoToPhone(videoId) {
+      const videoItem = vaultVideos.find(v => v.id === videoId);
+      if (!videoItem || !db) return;
+
+      // Playing this video right now? stop it first.
+      if (!document.getElementById('mxPlayerOverlay').classList.contains('hidden')) closeMxPlayer();
+
+      let done = false;
+
+      if (videoItem.originalRemoved) {
+        // Original was deleted on import -> put it back into its original folder (no download).
+        if (videoItem.dirHandle) {
+          try {
+            const dir = videoItem.dirHandle;
+            let perm = await dir.queryPermission({ mode: 'readwrite' });
+            if (perm !== 'granted') perm = await dir.requestPermission({ mode: 'readwrite' });
+            if (perm === 'granted') {
+              let name = videoItem.name;
+              try {
+                await dir.getFileHandle(name);                 // already exists?
+                const dot = name.lastIndexOf('.');
+                name = (dot > 0 ? name.slice(0, dot) : name) + '_restored' + (dot > 0 ? name.slice(dot) : '');
+              } catch (e) { /* not found = good */ }
+              const fh = await dir.getFileHandle(name, { create: true });
+              const w = await fh.createWritable();
+              await w.write(videoItem.blob);
+              await w.close();
+              done = true;
+            }
+          } catch (e) { console.error('restore failed', e); }
+        }
+        if (!done) {
+          if (!confirm('မူရင်း Folder ထဲသို့ တိုက်ရိုက်ပြန်ထည့်၍ မရပါ။\nDownload ဖြင့် ပြန်ထုတ်မလား?')) return;
+          downloadFallback(videoItem);
+          done = true;
+        }
+      } else {
+        // Original was never removed -> it is still on the phone; just release it from the app.
+        const stillThere = confirm('မူရင်းဖိုင် ဖုန်းထဲမှာ ရှိနေသေးပါသလား?\n\nOK = ရှိနေသေးတယ် (App ထဲကပဲ ဖယ်မည်၊ Download မလုပ်ပါ)\nCancel = မရှိတော့ဘူး (ဖုန်းထဲသို့ Download ပြန်ထုတ်မည်)');
+        if (!stillThere) downloadFallback(videoItem);
+        done = true;
+      }
+
+      if (!done) return;
+      try {
+        await idbDelete(videoId);
+        loadVaultVideos();
+        showToast(`"${videoItem.name}" ကို Restore ပြန်ပို့ပြီးပါပြီ`);
+      } catch (e) { showToast('App ထဲမှ ဖယ်ရှား၍မရပါ'); }
+    }
+
+    /*************************************************************
+     * PART 4: MX VIDEO PLAYER + AUTO LANDSCAPE ROTATION
+     *************************************************************/
+    const mxVideo = document.getElementById('mxVideo');
+    const mxSeekBar = document.getElementById('mxSeekBar');
+    let currentPlayingUrl = null;
+    let isScreenLocked = false;
+    let speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    let speedIdx = 2;
+    let fitModes = ['video-fit-contain', 'video-fit-cover', 'video-fit-fill'];
+    let fitIdx = 0;
+    let currentBrightness = 100;
+    let hudTimeout = null;
+
+    function playVaultVideo(index) {
+      const v = vaultVideos[index];
+      if (!v) return;
+
+      if (currentPlayingUrl) URL.revokeObjectURL(currentPlayingUrl);
+      currentPlayingUrl = URL.createObjectURL(v.blob);
+      // reset per-video state
+      speedIdx = 2; mxVideo.playbackRate = 1;
+      document.getElementById('mxSpeedBtn').innerText = '1.0x';
+      mxSeekBar.value = 0;
+      document.getElementById('mxCurrentTime').innerText = '00:00';
+
+      document.getElementById('mxPlayingTitle').innerText = v.name;
+      mxVideo.src = currentPlayingUrl;
+      mxVideo.play().catch(() => {});
+      updatePlayPauseIcon();
+      document.getElementById('mxTopHud').classList.remove('hud-hidden');
+      document.getElementById('mxBottomHud').classList.remove('hud-hidden');
+
+      const overlay = document.getElementById('mxPlayerOverlay');
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex');
+      showHudTemporarily();
+    }
+
+    async function toggleLandscapeFullscreen() {
+      const overlay = document.getElementById('mxPlayerOverlay');
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+          if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+          return;
+        }
+        if (overlay.requestFullscreen) await overlay.requestFullscreen();
+        if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
+      } catch (err) {
+        showToast('ဤ browser တွင် အလိုအလျောက် လှည့်၍မရပါ၊ ဖုန်းကို ကိုယ်တိုင်လှည့်ပါ');
+      }
+    }
+
+    // Leaving fullscreen (system back gesture etc.) -> release orientation lock
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && screen.orientation && screen.orientation.unlock) {
+        try { screen.orientation.unlock(); } catch (e) {}
+      }
+    });
+
+    function closeMxPlayer() {
+      mxVideo.pause();
+      mxVideo.style.transform = '';
+      if (isScreenLocked) toggleScreenLock();
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      if (screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock();
+      }
+      document.getElementById('mxPlayerOverlay').classList.add('hidden');
+      document.getElementById('mxPlayerOverlay').classList.remove('flex');
+      mxVideo.removeAttribute('src');
+      mxVideo.load();
+      if (currentPlayingUrl) { URL.revokeObjectURL(currentPlayingUrl); currentPlayingUrl = null; }
+    }
+
+    function togglePlayPause() {
+      if (mxVideo.paused) mxVideo.play().catch(() => {});
+      else mxVideo.pause();
+      updatePlayPauseIcon();
+      showHudTemporarily();
+    }
+
+    function updatePlayPauseIcon() {
+      document.getElementById('mxPlayPauseBtn').innerHTML = mxVideo.paused
+        ? '<i class="fa-solid fa-play ml-0.5"></i>'
+        : '<i class="fa-solid fa-pause"></i>';
+    }
+
+    function skipVideo(sec) {
+      mxVideo.currentTime = Math.max(0, Math.min(mxVideo.duration || 0, mxVideo.currentTime + sec));
+      showGestureFeedback(sec > 0 ? 'fa-forward' : 'fa-backward', `${sec > 0 ? '+' : ''}${sec}s`, (mxVideo.currentTime / (mxVideo.duration || 1)) * 100);
+      showHudTemporarily();
+    }
+
+    function cyclePlaybackSpeed() {
+      speedIdx = (speedIdx + 1) % speeds.length;
+      mxVideo.playbackRate = speeds[speedIdx];
+      document.getElementById('mxSpeedBtn').innerText = speeds[speedIdx] + 'x';
+    }
+
+    function cycleAspectRatio() {
+      mxVideo.classList.remove(...fitModes);
+      fitIdx = (fitIdx + 1) % fitModes.length;
+      mxVideo.classList.add(fitModes[fitIdx]);
+    }
+
+    function toggleScreenLock() {
+      isScreenLocked = !isScreenLocked;
+      document.getElementById('mxTopHud').classList.toggle('hidden', isScreenLocked);
+      document.getElementById('mxBottomHud').classList.toggle('hidden', isScreenLocked);
+      if (!isScreenLocked) setHudVisible(true);
+      const unlockBtn = document.getElementById('unlockScreenBtn');
+      unlockBtn.classList.toggle('hidden', !isScreenLocked);
+      unlockBtn.classList.toggle('flex', isScreenLocked);
+    }
+
+    function formatSeconds(sec) {
+      if (!sec || isNaN(sec)) return "00:00";
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    mxVideo.addEventListener('timeupdate', () => {
+      document.getElementById('mxCurrentTime').innerText = formatSeconds(mxVideo.currentTime);
+      if (mxVideo.duration) mxSeekBar.value = (mxVideo.currentTime / mxVideo.duration) * 100;
+    });
+    mxVideo.addEventListener('loadedmetadata', () => {
+      document.getElementById('mxDuration').innerText = formatSeconds(mxVideo.duration);
+    });
+    mxVideo.addEventListener('play', updatePlayPauseIcon);
+    mxVideo.addEventListener('pause', updatePlayPauseIcon);
+
+    mxSeekBar.addEventListener('input', () => {
+      if (mxVideo.duration) mxVideo.currentTime = (mxSeekBar.value / 100) * mxVideo.duration;
+    });
+
+    // Touch Gestures
+    const gestureSurface = document.getElementById('gestureSurface');
+    let startX = 0, startY = 0, activeZone = 'center', dragging = false, mode = null, indTimer = null;
+
+    function showGestureFeedback(icon, text, pct) {
+      const box = document.getElementById('gestureIndicator');
+      document.getElementById('gestureIcon').className = `fa-solid ${icon} text-2xl text-blue-400`;
+      document.getElementById('gestureText').innerText = text;
+      document.getElementById('gestureBar').style.width = `${Math.max(0, Math.min(100, pct))}%`;
+      box.classList.remove('hidden');
+      box.classList.add('flex');
+      clearTimeout(indTimer);
+      indTimer = setTimeout(() => {
+        box.classList.add('hidden');
+        box.classList.remove('flex');
+      }, 850);
+    }
+
+    function setHudVisible(v) {
+      document.getElementById('mxTopHud').classList.toggle('hud-hidden', !v);
+      document.getElementById('mxBottomHud').classList.toggle('hud-hidden', !v);
+    }
+
+    function showHudTemporarily() {
+      if (isScreenLocked) return;
+      setHudVisible(true);
+      clearTimeout(hudTimeout);
+      hudTimeout = setTimeout(() => {
+        if (!mxVideo.paused) setHudVisible(false);
+      }, 3200);
+    }
+
+    gestureSurface.addEventListener('pointerdown', (e) => {
+      if (isScreenLocked) return;
+      startX = e.clientX;
+      startY = e.clientY;
+      activeZone = e.target.dataset.zone || 'center';
+      dragging = true;
+      mode = null;
+    });
+
+    gestureSurface.addEventListener('pointermove', (e) => {
+      if (!dragging || isScreenLocked) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (!mode) {
+        if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy)) mode = 'horizontal';
+        else if (Math.abs(dy) > 14) mode = 'vertical';
+      }
+      if (mode === 'vertical') {
+        const delta = -dy * 0.45;
+        startY = e.clientY;
+        if (activeZone === 'left') {
+          currentBrightness = Math.max(15, Math.min(100, currentBrightness + delta));
+          document.getElementById('brightnessFilter').style.opacity = (100 - currentBrightness) / 100 * 0.8;
+          showGestureFeedback('fa-sun', `အလင်း ${Math.round(currentBrightness)}%`, currentBrightness);
+        } else if (activeZone === 'right') {
+          mxVideo.volume = Math.max(0, Math.min(1, mxVideo.volume + delta / 100));
+          const v = Math.round(mxVideo.volume * 100);
+          showGestureFeedback(v === 0 ? 'fa-volume-xmark' : 'fa-volume-high', `အသံ ${v}%`, v);
+        }
+      } else if (mode === 'horizontal' && mxVideo.duration) {
+        mxVideo.currentTime = Math.max(0, Math.min(mxVideo.duration, mxVideo.currentTime + dx * 0.15));
+        startX = e.clientX;
+        showGestureFeedback('fa-clock', formatSeconds(mxVideo.currentTime), (mxVideo.currentTime / mxVideo.duration) * 100);
+      }
+    });
+
+    gestureSurface.addEventListener('pointerup', () => {
+      if (dragging && !mode && !isScreenLocked) {
+        // plain tap: toggle controls
+        const hidden = document.getElementById('mxBottomHud').classList.contains('hud-hidden');
+        if (hidden) showHudTemporarily(); else { clearTimeout(hudTimeout); setHudVisible(false); }
+      }
+      dragging = false; mode = null;
+    });
+    gestureSurface.addEventListener('pointercancel', () => { dragging = false; mode = null; });
+
+    mxVideo.addEventListener('ended', () => { updatePlayPauseIcon(); setHudVisible(true); });
+    mxVideo.addEventListener('error', () => { if (mxVideo.getAttribute('src')) showToast('ဤဗီဒီယိုကို ဖွင့်၍မရပါ (format မထောက်ပံ့နိုင်)'); });
+
+    /*************************************************************
+     * PART 5: TAB SWITCHER
+     *************************************************************/
+    function switchMainTab(tab) {
+      ['notesTab', 'videosTab', 'settingsTab'].forEach(id => document.getElementById(id).classList.add('hidden'));
+      document.getElementById(tab + 'Tab').classList.remove('hidden');
+
+      const activeTop = "py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-blue-600 text-white shadow transition";
+      const inactiveTop = "py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 theme-text-muted transition";
+
+      document.getElementById('topTabNotes').className = tab === 'notes' ? "py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow transition" : inactiveTop;
+      document.getElementById('topTabVideos').className = tab === 'videos' ? activeTop : inactiveTop;
+      document.getElementById('topTabSettings').className = tab === 'settings' ? activeTop : inactiveTop;
+
+      const navOn = "flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-amber-400 bg-amber-500/10 font-bold text-xs transition";
+      const navOff = "flex items-center gap-1.5 px-3.5 py-2 rounded-xl theme-text-muted font-bold text-xs transition";
+      document.getElementById('navNotesBtn').className = tab === 'notes' ? navOn : navOff;
+      document.getElementById('navVideosBtn').className = tab === 'videos' ? navOn.replace('amber-400','blue-400').replace('bg-amber-500/10','bg-blue-500/10') : navOff;
+      document.getElementById('navSettingsBtn').className = tab === 'settings' ? navOn.replace('amber-400','blue-400').replace('bg-amber-500/10','bg-blue-500/10') : navOff;
+
+      if (tab === 'notes') renderNotes();
+      if (tab === 'videos') renderVaultList();
+    }
+
+    renderNotes();
+  </script>
+</body>
+</html>
