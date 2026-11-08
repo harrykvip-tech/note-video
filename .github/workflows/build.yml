@@ -1,0 +1,59 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install Capacitor
+        run: |
+          npm init -y
+          npm i --no-audit --no-fund @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @fortawesome/fontawesome-free
+
+      - name: Make offline web bundle
+        run: |
+          mkdir -p www/vendor/fa
+          cp index.html www/index.html
+          curl -L https://cdn.tailwindcss.com/3.4.17 -o www/vendor/tailwind.js
+          cp -r node_modules/@fortawesome/fontawesome-free/css node_modules/@fortawesome/fontawesome-free/webfonts www/vendor/fa/
+          sed -i 's#https://cdn.tailwindcss.com#vendor/tailwind.js#' www/index.html
+          sed -i 's#https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css#vendor/fa/css/all.min.css#' www/index.html
+          sed -i "/@import url/d" www/index.html
+          test -s www/vendor/tailwind.js
+
+      - name: Create Android project
+        run: |
+          npx cap init "MX Notes Vault" com.mynotes.vault --web-dir=www
+          npx cap add android
+          npx cap sync android
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Publish APK as a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk MX-Notes-Vault.apk
+          gh release create "v${{ github.run_number }}" MX-Notes-Vault.apk --title "MX Notes Vault build ${{ github.run_number }}" --notes "Debug APK"
